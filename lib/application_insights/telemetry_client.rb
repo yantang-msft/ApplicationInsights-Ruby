@@ -10,6 +10,7 @@ require_relative 'channel/contracts/metric_data'
 require_relative 'channel/contracts/message_data'
 require_relative 'channel/contracts/stack_frame'
 require_relative 'channel/contracts/request_data'
+require_relative 'channel/contracts/remote_dependency_data'
 require_relative 'channel/contracts/severity_level'
 
 module ApplicationInsights
@@ -215,6 +216,38 @@ module ApplicationInsights
         :url => options[:url],
         :properties => options[:properties] || {},
         :measurements => options[:measurements] || {}
+      )
+
+      self.channel.write(data, self.context)
+    end
+
+    # Sends a single remote dependency.
+    # @param [String] id the unique identifier of the dependency.
+    # @param [String] duration the duration to process the dependency.
+    # @param [String] result_code the response code of the dependency.
+    # @param [Boolean] success indicates whether the dependency succeeds or not.
+    # @param [Hash] options the options to create the
+    #   {Channel::Contracts::RemoteDependencyData} object.
+    # @option options [String] :name the name of the dependency.
+    # @option options [String] :data the data associated with the current dependency instance. Command name/statement for SQL dependency, URL for http dependency.
+    # @option options [String] :target the target of dependency call. SQL server name, url host, etc.
+    # @option options [String] :type the type name of the dependency call.
+    # @option options [Hash] :properties the set of custom properties the client
+    #   wants attached to this data item. (defaults to: {})
+    # @option options [Hash] :measurements the set of custom measurements the
+    #   client wants to attach to this data item (defaults to: {})
+    def track_dependency(id, duration, result_code, success, options={})
+      data = Channel::Contracts::RemoteDependencyData.new(
+        :id => id || 'Null',
+        :duration => duration || '0:00:00:00.0000000',
+        :result_code => result_code || 200,
+        :success => success = nil ? true : success,
+        :name => options[:name],
+        :data => options[:data],
+        :target => options[:target],
+        :type => options[:type],
+        :properties => options.fetch(:properties) { {} },
+        :measurements => options.fetch(:measurements) { {} }
       )
 
       self.channel.write(data, self.context)
